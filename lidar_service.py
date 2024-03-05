@@ -41,13 +41,23 @@ See doc/sick_scan_api/sick_scan_api.md for further information.
 
 """
 
+import os
+
+# Add paths to LD_LIBRARY_PATH and PYTHONPATH
+os.environ['LD_LIBRARY_PATH'] = f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/build"
+os.environ['PYTHONPATH'] = f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/sick_scan_xd/python/api"
+
+
+print(os.environ['PYTHONPATH'])
+
 
 # Make sure sick_scan_api is searched in all folders configured in environment variable PYTHONPATH
 def appendPythonPath():
     pythonpath = os.environ["PYTHONPATH"]
+    print(os.environ['PYTHONPATH'])
     for folder in pythonpath.split(";"):
         sys.path.append(os.path.abspath(folder))
-
+    print(sys.path)
 
 try:
     # import sick_scan_api
@@ -61,13 +71,15 @@ except ModuleNotFoundError:
 
     sick_scan_api = importlib.import_module("sick_scan_api")
 
+    from sick_scan_api import *
 
 # TODO: Move to somewhere else?
-cli_args = "/sick_scan_xd/launch/sick_lms_4xxx.launch hostname:=10.95.76.102"
+cli_args = "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/sick_scan_xd/launch/sick_lms_4xxx.launch hostname:=10.95.76.102"
+
 
 # Load sick_scan_library
 sick_scan_library = SickScanApiLoadLibrary(
-    ["build/", "build_linux/", "../../build/", "../../build_linux/", "./", "../"],
+    ["build/", "build_linux/", "../../build/", "../../build_linux/", "./", "../","/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/build/"],
     "libsick_scan_xd_shared_lib.so",
 )
 

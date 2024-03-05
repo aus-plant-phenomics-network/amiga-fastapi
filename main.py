@@ -42,7 +42,7 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-templates = Jinja2Templates("/app/templates")
+templates = Jinja2Templates("/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/templates")
 
 
 @app.get("/simple_lidar")

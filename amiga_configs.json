@@ -3,7 +3,7 @@
     {
       "name": "lidar",
       "port": 5001,
-      "host": "host.docker.internal",
+      "host": "localhost",
       "log_level": "DEBUG"
     }
   ]

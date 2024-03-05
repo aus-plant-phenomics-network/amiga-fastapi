@@ -9,7 +9,8 @@
     <script>
 
         // Connect to WebSocket
-        const socket = new WebSocket('ws://localhost:8042/subscribe/lidar/data');
+	const socket = new WebSocket(`ws://${window.location.host}/subscribe/lidar/data`);
+
         // Initialize Plotly chart
         let chartInitialized = false;
         socket.onopen = function (event) {
