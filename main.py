@@ -25,10 +25,11 @@ from farm_ng.core.event_service_pb2 import SubscribeRequest
 from farm_ng.core.events_file_reader import proto_from_json_file
 from farm_ng.core.uri_pb2 import Uri
 from fastapi import FastAPI
-from fastapi import WebSocket
+from fastapi import WebSocket, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from google.protobuf.json_format import MessageToJson
 
 app = FastAPI()
@@ -41,6 +42,14 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+templates = Jinja2Templates("/app/templates")
+
+
+@app.get("/simple_lidar")
+async def simple_lidar(request: Request):
+    return templates.TemplateResponse("simple_lidar.html", {"request": request})
+
+
 # to store the events clients
 clients: dict[str, EventClient] = {}
 
@@ -48,10 +57,10 @@ clients: dict[str, EventClient] = {}
 @app.get("/list_uris")
 async def list_uris() -> JSONResponse:
     """Coroutine to list all the uris from all the event services
-    
+
     Returns:
         JSONResponse: the list of uris as a json.
-    
+
     Usage:
         curl -X GET "http://localhost:8042/list_uris"
     """
@@ -75,15 +84,17 @@ async def list_uris() -> JSONResponse:
 
 
 @app.websocket("/subscribe/{service_name}/{uri_path}")
-async def subscribe(websocket: WebSocket, service_name: str, uri_path: str, every_n: int = 1):
+async def subscribe(
+    websocket: WebSocket, service_name: str, uri_path: str, every_n: int = 1
+):
     """Coroutine to subscribe to an event service via websocket.
-    
+
     Args:
         websocket (WebSocket): the websocket connection
         service_name (str): the name of the event service
         uri_path (str): the uri path to subscribe to
         every_n (int, optional): the frequency to receive events. Defaults to 1.
-    
+
     Usage:
         ws = new WebSocket("ws://localhost:8042/subscribe/oak0/left
     """
@@ -93,8 +104,11 @@ async def subscribe(websocket: WebSocket, service_name: str, uri_path: str, ever
     await websocket.accept()
 
     async for _, message in client.subscribe(
-        request=SubscribeRequest(uri=Uri(path=f"/{uri_path}"), every_n=every_n), decode=True
+        request=SubscribeRequest(uri=Uri(path=f"/{uri_path}"), every_n=every_n),
+        decode=True,
     ):
+        print(f"Received message: {message}")
+
         await websocket.send_json(MessageToJson(message))
 
     await websocket.close()
@@ -117,7 +131,9 @@ if __name__ == "__main__":
         )
 
     # config list with all the configs
-    config_list: EventServiceConfigList = proto_from_json_file(args.config, EventServiceConfigList())
+    config_list: EventServiceConfigList = proto_from_json_file(
+        args.config, EventServiceConfigList()
+    )
 
     for config in config_list.configs:
         if config.port == 0:

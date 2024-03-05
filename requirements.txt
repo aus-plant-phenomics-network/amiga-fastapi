@@ -1,3 +1,6 @@
 farm-ng-amiga
 fastapi
 uvicorn[standard]
+numpy
+opencv-python
+jinja2

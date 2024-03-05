@@ -1,0 +1,10 @@
+{
+  "configs": [
+    {
+      "name": "lidar",
+      "port": 5001,
+      "host": "host.docker.internal",
+      "log_level": "DEBUG"
+    }
+  ]
+}

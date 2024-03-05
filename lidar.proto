@@ -1,0 +1,16 @@
+//Create python file with `protoc --python_out=. lidar.proto`
+
+syntax = "proto3";
+
+message Point3D {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+message GetLIDARRequest {
+}
+
+message GetLIDARResponse {
+  repeated Point3D points = 1;
+}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="https://cdn.plot.ly/plotly-2.25.2.min.js" charset="utf-8"></script>
+
+    <script>
+
+        // Connect to WebSocket
+        const socket = new WebSocket('ws://localhost:8042/subscribe/lidar/data');
+        // Initialize Plotly chart
+        let chartInitialized = false;
+        socket.onopen = function (event) {
+            console.log('WebSocket connection established');
+        };
+        socket.onmessage = function (event) {
+            // Parse data received from WebSocket
+            const data = JSON.parse(JSON.parse(event.data));
+
+            // Extract x and y coordinates from data points
+            const xData = data.points.map(point => point.x);
+            const yData = data.points.map(point => point.y);
+
+            const layout = {
+                xaxis: {
+                    range: [0, 2] // Specify the range for the x-axis
+                },
+                yaxis: {
+                    range: [-1, 1] // Specify the range for the y-axis
+                }
+            };
+
+            // Check if Plotly chart is initialized
+            if (!chartInitialized) {
+
+                // Initialize Plotly chart
+                const trace = {
+                    x: xData,
+                    y: yData,
+                    mode: 'markers',
+                    type: 'scatter'
+                };
+                Plotly.newPlot('chart', [trace], layout);
+                chartInitialized = true;
+            } else {
+                // Update existing Plotly chart
+                Plotly.restyle('chart', 'x', [xData]);
+                Plotly.restyle('chart', 'y', [yData]);
+
+                Plotly.relayout('chart', layout);
+
+            }
+        };
+        socket.onclose = function (event) {
+            console.log('WebSocket connection closed');
+        };
+        socket.onerror = function (error) {
+            console.error('WebSocket error: ', error);
+        };
+    </script>
+
+</head>
+<body>
+<div id="chart" style="width: 90vh; height: 90vh; margin:auto;"></div>
+</body>
+</html>

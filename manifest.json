@@ -1,15 +1,24 @@
 {
   "services": {
-    "example-app": {
-      "name": "example-app",
-      "type": "app",
-      "exec_cmd": "/mnt/managed_home/farm-ng-user-YOUR_USER_HERE/amiga-app-template/venv/bin/python3 /mnt/managed_home/farm-ng-user-YOUR_USER_HERE/amiga-app-template/main.py",
+    "lidar-service": {
+      "name": "lidar-service",
+      "type": "service",
+      "exec_cmd": "/farm_ng_image/venv/bin/python3 example_service.py",
       "args": [
-        "--config /opt/farmng/config.json", "--port 8042"
+        "--service-config /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/config.json"
+      ],
+      "autostart": true
+    },
+    "lidar-app": {
+      "name": "lidar-app",
+      "type": "app",
+      "exec_cmd": "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/venv/bin/python3 /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/main.py",
+      "args": [
+        "--config /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/amiga-configs.json", "--port 8042"
       ],
       "autostart": true,
       "http_gui_port": 8042,
-      "display_name": "Monitor App"
+      "display_name": "LIDAR App"
     }
   }
 }
