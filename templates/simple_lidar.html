@@ -9,7 +9,7 @@
     <script>
 
         // Connect to WebSocket
-	const socket = new WebSocket(`ws://${window.location.host}/subscribe/lidar/data`);
+        const socket = new WebSocket(`ws://${window.location.host}/subscribe/lidar/data`);
 
         // Initialize Plotly chart
         let chartInitialized = false;
@@ -23,6 +23,8 @@
             // Extract x and y coordinates from data points
             const xData = data.points.map(point => point.x);
             const yData = data.points.map(point => point.y);
+            const zData = data.points.map(point => point.z);
+
 
             const layout = {
                 xaxis: {
@@ -30,30 +32,37 @@
                 },
                 yaxis: {
                     range: [-1, 1] // Specify the range for the y-axis
+                },
+                zaxis: {
+                    range: [0, 1000] // Specify the range for the y-axis
                 }
+            };
+
+            const trace = {
+                x: xData,
+                y: yData,
+                z: zData,
+                mode: 'markers',
+                type: 'scatter3d'
             };
 
             // Check if Plotly chart is initialized
             if (!chartInitialized) {
-
-                // Initialize Plotly chart
-                const trace = {
-                    x: xData,
-                    y: yData,
-                    mode: 'markers',
-                    type: 'scatter'
-                };
                 Plotly.newPlot('chart', [trace], layout);
                 chartInitialized = true;
             } else {
-                // Update existing Plotly chart
-                Plotly.restyle('chart', 'x', [xData]);
-                Plotly.restyle('chart', 'y', [yData]);
 
-                Plotly.relayout('chart', layout);
+                const existingData = document.getElementById('chart').data[0];
 
+                // Update existing trace with concatenated data
+                Plotly.extendTraces('chart', {
+                    x: [xData],
+                    y: [yData],
+                    z: [zData]
+                }, [0]);
             }
-        };
+        }
+        ;
         socket.onclose = function (event) {
             console.log('WebSocket connection closed');
         };

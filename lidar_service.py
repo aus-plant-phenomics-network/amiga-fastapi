@@ -78,8 +78,6 @@ except ModuleNotFoundError:
 
     from sick_scan_api import *
 
-# TODO: Move to somewhere else?
-
 
 # Load sick_scan_library
 sick_scan_library = SickScanApiLoadLibrary(
@@ -170,6 +168,8 @@ class LIDARServer:
         self._event_service = event_service
         self._event_service.add_request_reply_handler(self.request_reply_handler)
 
+        self._counter = 0
+
     @property
     def logger(self) -> logging.Logger:
         """Return the logger for this service."""
@@ -203,6 +203,10 @@ class LIDARServer:
             #         msg.contents.width, msg.contents.height
             #     )
             # )
+            # print(f"There are {msg.contents.fields.size} fields.")
+            # for n in range(msg.contents.fields.size):
+            #     field_name = ctypesCharArrayToString(msg.contents.fields.buffer[n].name)
+            #     print(field_name)
             if len(lidar_buffer) == 0:
                 xyz = pySickScanCartesianPointCloudMsgToXYZ(msg.contents)
                 lidar_buffer.append(xyz)
@@ -228,13 +232,13 @@ class LIDARServer:
                     point = point_cloud.points.add()
                     point.x = new_read[0][i]
                     point.y = new_read[1][i]
-                    point.z = new_read[2][i]
+                    point.z = self._counter  # new_read[2][i]
 
                 await self._event_service.publish("/data", point_cloud)
 
             # await self._event_service.publish("/counter", Int32Value(value=self._counter))
-            # self._counter += 1
-            await asyncio.sleep(2 * 1.0)
+            self._counter += 1
+            await asyncio.sleep(1)
             # count += 1
 
         SickScanApiDeregisterCartesianPointCloudMsg(
@@ -247,7 +251,7 @@ class LIDARServer:
     async def serve(self) -> None:
         await asyncio.gather(self._event_service.serve(), self.run())
 
-    # TODO: Add a "on killed or stopped" function
+    # TODO: Add a "on killed or stopped" service function
 
     # Close lidar and release sick_scan api
     # SickScanApiDeregisterCartesianPointCloudMsg(sick_scan_library, api_handle, cartesian_pointcloud_callback)
