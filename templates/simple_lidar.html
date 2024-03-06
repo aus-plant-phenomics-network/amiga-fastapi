@@ -52,8 +52,6 @@
                 chartInitialized = true;
             } else {
 
-                const existingData = document.getElementById('chart').data[0];
-
                 // Update existing trace with concatenated data
                 Plotly.extendTraces('chart', {
                     x: [xData],
