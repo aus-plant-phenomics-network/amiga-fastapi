@@ -1,0 +1,30 @@
+# development environment compose file.
+
+version: '3'
+
+services:
+  lidar-app:
+    build: .
+    container_name: lidar-app
+    ports:
+      - "8042:8042"
+    command: [ "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/venv/bin/python3",
+               "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/main.py",
+               "--config",
+               "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/dev.amiga_configs.json",
+               "--port",
+               "8042" ]
+    volumes:
+      - ./templates:/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/templates
+
+  lidar-service:
+    build: .
+    container_name: lidar-service
+    ports:
+      - "5001:5001"
+    command: [ "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/venv/bin/python3",
+               "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/lidar_service.py",
+               "--service-config",
+               "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/config.json",
+               "--lidar_address",
+               "192.168.0.1" ]

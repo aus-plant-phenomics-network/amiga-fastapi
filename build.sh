@@ -11,3 +11,5 @@ pip install -r requirements.txt
 cd ts/
 npm install
 npm run build
+
+# TODO: Install SICK LIDAR here?

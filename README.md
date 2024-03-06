@@ -6,4 +6,6 @@ For the most up-to-date documentation on using this template repository, please 
 
 [amiga.farm-ng.com - **Developing Custom Applications**](https://amiga.farm-ng.com/docs/brain/brain-apps)
 
+SICK install issue: https://github.com/SICKAG/sick_scan_xd/issues/276
+
 ---

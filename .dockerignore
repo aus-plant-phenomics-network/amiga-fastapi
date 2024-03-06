@@ -1,0 +1,5 @@
+# .dockerignore
+libs
+venv
+farm-ng-core
+ts/node_modules
