@@ -5,7 +5,7 @@
       "type": "service",
       "exec_cmd": "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/venv/bin/python3 /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/lidar_service.py",
       "args": [
-        "--service-config /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/config.json"
+        "--service-config /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/config.json",  "--lidar_address 10.95.76.102"
       ],
       "autostart": true
     },
@@ -14,7 +14,7 @@
       "type": "app",
       "exec_cmd": "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/venv/bin/python3 /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/main.py",
       "args": [
-        "--config /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/amiga_configs.json", "--port 8042", "--lidar_address 10.95.76.102"
+        "--config /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/amiga_configs.json", "--port 8042"
       ],
       "deps": [
         "lidar-service"

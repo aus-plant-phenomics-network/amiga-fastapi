@@ -24,6 +24,12 @@
             const xData = data.points.map(point => point.x);
             const yData = data.points.map(point => point.y);
             const zData = data.points.map(point => point.z);
+    // Scale yData to the range [0,1] for colorscale
+    const yScaled = yData.map(y => (y - Math.min(...yData)) / (Math.max(...yData) - Math.min(...yData)));
+
+    // Define the colorscale (green-red)
+    const colorscale = [[0, 'green'], [1, 'red']];
+
 
 
             const layout = {
@@ -34,7 +40,7 @@
                     range: [-1, 1] // Specify the range for the y-axis
                 },
                 zaxis: {
-                    range: [0, 1000] // Specify the range for the y-axis
+                    range: [0, 10000] // Specify the range for the y-axis
                 }
             };
 
@@ -43,8 +49,19 @@
                 y: yData,
                 z: zData,
                 mode: 'markers',
-                type: 'scatter3d'
-            };
+                type: 'scatter3d',
+           marker: {
+                color: yScaled, // Set colors based on scaled yData
+                colorscale: colorscale,
+                cmin: 0, // Minimum value of colorscale (corresponds to green)
+                cmax: 1, // Maximum value of colorscale (corresponds to red)
+                colorbar: {
+                    title: 'Height', // Title for the colorbar
+                    ticksuffix: '' // Suffix for colorbar ticks
+                }
+            }
+            
+};
 
             // Check if Plotly chart is initialized
             if (!chartInitialized) {

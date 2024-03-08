@@ -238,7 +238,7 @@ class LIDARServer:
 
             # await self._event_service.publish("/counter", Int32Value(value=self._counter))
             self._counter += 1
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
             # count += 1
 
         SickScanApiDeregisterCartesianPointCloudMsg(
