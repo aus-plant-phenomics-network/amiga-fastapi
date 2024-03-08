@@ -235,10 +235,9 @@ class LIDARServer:
                     point.z = self._counter  # new_read[2][i]
 
                 await self._event_service.publish("/data", point_cloud)
-
-            # await self._event_service.publish("/counter", Int32Value(value=self._counter))
-            self._counter += 1
-            # await asyncio.sleep(0.5)
+                # only increase counter when data is sent to stop z-stretching
+                self._counter += 1
+            #await asyncio.sleep(1)
             # count += 1
 
         SickScanApiDeregisterCartesianPointCloudMsg(

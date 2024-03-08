@@ -135,8 +135,9 @@ async def subscribe(
         print("WebSocket disconnected remotely")
 
         print("finished")
-
-        await create_ply_file_from_buffer(lidar_buffer)
+        if service_name == "lidar" and uri_path == "data":
+            logger.info("sending buffer to ply creator")
+            await create_ply_file_from_buffer(lidar_buffer)
         # print(lidar_buffer)
 
 
@@ -144,10 +145,14 @@ async def create_ply_file_from_buffer(lidar_buffer):
 
     # xyz = np.random.rand(100, 3)
 
+    logger.info("creating ply")
+
     list_of_points = []
     for read in lidar_buffer:
         for point in read.points:
             list_of_points.append([point.x, point.y, point.z])
+
+    logger.info(f"number of points: {len(list_of_points)}")
 
     xyz = np.array(list_of_points)
 
@@ -156,7 +161,7 @@ async def create_ply_file_from_buffer(lidar_buffer):
 
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(xyz)
-    filename = f'./lidar_{datetime.now().strftime("%Y%m%d%H%M%S")}.ply'
+    filename = f'/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/lidar_{datetime.now().strftime("%Y%m%d%H%M%S")}.ply'
     logger.info(filename)
     o3d.io.write_point_cloud(filename, pcd)
 

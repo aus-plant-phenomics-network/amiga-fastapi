@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <title>Title</title>
 
+    <style>
+        /* Style for the buttons */
+        button {
+            width: 200px; /* Set the width */
+            height: 200px; /* Set the height */
+            font-size: 20px; /* Adjust font size as needed */
+            /* Add any other styles you want */
+        }
+    </style>
+
     <!--TODO This only works with an internet connection. If we continue to use Plotly, we will need to download and package it with the app -->
     <script src="https://cdn.plot.ly/plotly-2.25.2.min.js" charset="utf-8"></script>
 
@@ -12,6 +22,7 @@
 
             let chartInitialized = false;
             let socket;
+let messageCounter = 0; // Initialize message counter
 
             document.getElementById('startButton').addEventListener('click', function () {
 
@@ -23,6 +34,11 @@
                     console.log('WebSocket connection established');
                 };
                 socket.onmessage = function (event) {
+    messageCounter++;
+
+    // Check if the current message is the 10th message
+    if (messageCounter % 10 === 0) {
+
                         // Parse data received from WebSocket
                         const data = JSON.parse(JSON.parse(event.data));
 
@@ -92,6 +108,7 @@
                                 }
                             )
                         }
+}
                 };
                 socket.onclose = function (event) {
                     console.log('WebSocket connection closed');
@@ -126,10 +143,10 @@
 
 </head>
 <body>
-<div id="chart" style="width: 90vh; height: 90vh; margin:auto;"></div>
 <button id="startButton">Start</button>
 <button id="stopButton">Stop</button>
 <button id="resetButton">Reset</button>
+<div id="chart" style="width: 90vh; height: 90vh; margin:auto;"></div>
 
 </body>
 </html>
