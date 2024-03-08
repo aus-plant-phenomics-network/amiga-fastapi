@@ -13,9 +13,10 @@ services:
                "--config",
                "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/dev.amiga_configs.json",
                "--port",
-               "8042" ]
+               "8042"]
     volumes:
       - ./templates:/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/templates
+      - ./main.py:/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/main.py
 
   lidar-service:
     build: .

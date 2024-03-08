@@ -16,8 +16,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
+from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import uvicorn
 from farm_ng.core.event_client import EventClient
 from farm_ng.core.event_service_pb2 import EventServiceConfigList
@@ -25,12 +28,18 @@ from farm_ng.core.event_service_pb2 import SubscribeRequest
 from farm_ng.core.events_file_reader import proto_from_json_file
 from farm_ng.core.uri_pb2 import Uri
 from fastapi import FastAPI
-from fastapi import WebSocket, Request
+from fastapi import WebSocket, Request, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from google.protobuf.json_format import MessageToJson
+from functools import reduce
+
+import open3d as o3d
+
+logger = logging.getLogger("uvicorn")
+
 
 app = FastAPI()
 
@@ -42,7 +51,9 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-templates = Jinja2Templates("/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/templates")
+templates = Jinja2Templates(
+    "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/templates"
+)
 
 
 @app.get("/simple_lidar")
@@ -103,15 +114,51 @@ async def subscribe(
 
     await websocket.accept()
 
-    async for _, message in client.subscribe(
-        request=SubscribeRequest(uri=Uri(path=f"/{uri_path}"), every_n=every_n),
-        decode=True,
-    ):
-        print(f"Received message: {message}")
+    if service_name == "lidar" and uri_path == "data":
+        lidar_buffer = []
 
-        await websocket.send_json(MessageToJson(message))
+    try:
 
-    await websocket.close()
+        async for _, message in client.subscribe(
+            request=SubscribeRequest(uri=Uri(path=f"/{uri_path}"), every_n=every_n),
+            decode=True,
+        ):
+            print(f"Received message.")
+
+            if service_name == "lidar" and uri_path == "data":
+                lidar_buffer.append(message)
+
+            await websocket.send_json(MessageToJson(message))
+
+        await websocket.close()
+    except WebSocketDisconnect:
+        print("WebSocket disconnected remotely")
+
+        print("finished")
+
+        await create_ply_file_from_buffer(lidar_buffer)
+        # print(lidar_buffer)
+
+
+async def create_ply_file_from_buffer(lidar_buffer):
+
+    # xyz = np.random.rand(100, 3)
+
+    list_of_points = []
+    for read in lidar_buffer:
+        for point in read.points:
+            list_of_points.append([point.x, point.y, point.z])
+
+    xyz = np.array(list_of_points)
+
+    logger.info(xyz)
+    logger.info(xyz.shape)
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(xyz)
+    filename = f'./lidar_{datetime.now().strftime("%Y%m%d%H%M%S")}.ply'
+    logger.info(filename)
+    o3d.io.write_point_cloud(filename, pcd)
 
 
 if __name__ == "__main__":

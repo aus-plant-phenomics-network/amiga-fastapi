@@ -4,90 +4,132 @@
     <meta charset="UTF-8">
     <title>Title</title>
 
+    <!--TODO This only works with an internet connection. If we continue to use Plotly, we will need to download and package it with the app -->
     <script src="https://cdn.plot.ly/plotly-2.25.2.min.js" charset="utf-8"></script>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
 
-        // Connect to WebSocket
-        const socket = new WebSocket(`ws://${window.location.host}/subscribe/lidar/data`);
+            let chartInitialized = false;
+            let socket;
 
-        // Initialize Plotly chart
-        let chartInitialized = false;
-        socket.onopen = function (event) {
-            console.log('WebSocket connection established');
-        };
-        socket.onmessage = function (event) {
-            // Parse data received from WebSocket
-            const data = JSON.parse(JSON.parse(event.data));
-
-            // Extract x and y coordinates from data points
-            const xData = data.points.map(point => point.x);
-            const yData = data.points.map(point => point.y);
-            const zData = data.points.map(point => point.z);
-    // Scale yData to the range [0,1] for colorscale
-    const yScaled = yData.map(y => (y - Math.min(...yData)) / (Math.max(...yData) - Math.min(...yData)));
-
-    // Define the colorscale (green-red)
-    const colorscale = [[0, 'green'], [1, 'red']];
+            document.getElementById('startButton').addEventListener('click', function () {
 
 
+                socket = new WebSocket(`ws://${window.location.host}/subscribe/lidar/data`);
 
-            const layout = {
-                xaxis: {
-                    range: [0, 2] // Specify the range for the x-axis
-                },
-                yaxis: {
-                    range: [-1, 1] // Specify the range for the y-axis
-                },
-                zaxis: {
-                    range: [0, 10000] // Specify the range for the y-axis
+                // Initialize Plotly chart
+                socket.onopen = function (event) {
+                    console.log('WebSocket connection established');
+                };
+                socket.onmessage = function (event) {
+                        // Parse data received from WebSocket
+                        const data = JSON.parse(JSON.parse(event.data));
+
+                        // Extract x and y coordinates from data points
+                        const xData = data.points.map(point => point.x);
+                        const yData = data.points.map(point => point.y);
+                        const zData = data.points.map(point => point.z);
+
+                        // Define the colorscale (green-red)
+                        const colorscale = [[0, 'green'], [1, 'red']];
+
+                        const layout = {
+                            xaxis: {
+                                range: [0, 2] // Specify the range for the x-axis
+                            },
+                            yaxis: {
+                                range: [-1, 1] // Specify the range for the y-axis
+                            },
+                            zaxis: {
+                                range: [0, 10000] // Specify the range for the y-axis
+                            }
+                        };
+                        const trace = {
+                            x: xData,
+                            y: yData,
+                            z: zData,
+                            mode: 'markers',
+                            type: 'scatter3d',
+                            marker: {
+                                size: 1,
+                                color: xData, // Set colors based on scaled yData
+                                colorscale: colorscale,
+                                colorbar: {
+                                    title: 'Height', // Title for the colorbar
+                                    ticksuffix: '' // Suffix for colorbar ticks
+                                }
+                            }
+                        };
+
+                        // Check if Plotly chart is initialized
+                        if (!chartInitialized) {
+                            Plotly.newPlot('chart', [trace], layout);
+                            chartInitialized = true;
+
+                        } else {
+
+                            // Update existing trace with concatenated data
+                            Plotly.extendTraces('chart', {
+                                x: [xData],
+                                y: [yData],
+                                z: [zData],
+                            }, [0]);
+
+                            var full_xData = document.getElementById('chart').data[0].x;
+
+                            Plotly.restyle('chart',
+                                {
+                                    marker: {
+                                        size: 1,
+                                        color: full_xData, // Set colors based on scaled yData
+                                        colorscale: colorscale,
+                                        colorbar: {
+                                            title: 'Height', // Title for the colorbar
+                                            ticksuffix: '' // Suffix for colorbar ticks
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                };
+                socket.onclose = function (event) {
+                    console.log('WebSocket connection closed');
+                };
+                socket.onerror = function (error) {
+                    console.error('WebSocket error: ', error);
+                };
+
+
+            });
+
+            document.getElementById('stopButton').addEventListener('click', function () {
+                // Reset chartInitialized to false
+                chartInitialized = false;
+                if (socket) {
+                    socket.close(); // Close WebSocket connection if it's open
                 }
-            };
 
-            const trace = {
-                x: xData,
-                y: yData,
-                z: zData,
-                mode: 'markers',
-                type: 'scatter3d',
-           marker: {
-                color: yScaled, // Set colors based on scaled yData
-                colorscale: colorscale,
-                cmin: 0, // Minimum value of colorscale (corresponds to green)
-                cmax: 1, // Maximum value of colorscale (corresponds to red)
-                colorbar: {
-                    title: 'Height', // Title for the colorbar
-                    ticksuffix: '' // Suffix for colorbar ticks
-                }
-            }
-            
-};
+            });
 
-            // Check if Plotly chart is initialized
-            if (!chartInitialized) {
-                Plotly.newPlot('chart', [trace], layout);
-                chartInitialized = true;
-            } else {
+            document.getElementById('resetButton').addEventListener('click', function () {
+                // Reset chartInitialized to false
+                chartInitialized = false;
+                Plotly.deleteTraces('chart', -1);
 
-                // Update existing trace with concatenated data
-                Plotly.extendTraces('chart', {
-                    x: [xData],
-                    y: [yData],
-                    z: [zData]
-                }, [0]);
-            }
-        }
-        ;
-        socket.onclose = function (event) {
-            console.log('WebSocket connection closed');
-        };
-        socket.onerror = function (error) {
-            console.error('WebSocket error: ', error);
-        };
+            });
+
+            // Connect to WebSocket
+
+        });
     </script>
 
 </head>
 <body>
 <div id="chart" style="width: 90vh; height: 90vh; margin:auto;"></div>
+<button id="startButton">Start</button>
+<button id="stopButton">Stop</button>
+<button id="resetButton">Reset</button>
+
 </body>
 </html>

@@ -10,6 +10,7 @@ RUN apt update
 RUN apt install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa -y
 RUN apt update
+#TODO: install ffmpeg libsm6 libxext6 on the brain also?
 RUN apt-get -y install \
     tzdata \
     git \
@@ -22,6 +23,9 @@ RUN apt-get -y install \
     python3.8-distutils \
     python3-pip \
     python3-venv \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
 

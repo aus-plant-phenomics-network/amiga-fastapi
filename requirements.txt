@@ -4,3 +4,4 @@ uvicorn[standard]
 numpy
 opencv-python
 jinja2
+open3d
