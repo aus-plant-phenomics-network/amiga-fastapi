@@ -6,24 +6,28 @@ from google.protobuf.internal import builder as _builder
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
-
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x0blidar.proto"*\n\x07Point3D\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x12\t\n\x01z\x18\x03 \x01(\x02"\x11\n\x0fGetLIDARRequest",\n\x10GetLIDARResponse\x12\x18\n\x06points\x18\x01 \x03(\x0b\x32\x08.Point3Db\x06proto3'
-)
+
+
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0blidar.proto\"\xd3\x05\n\x15SickScanPointCloudMsg\x12\x35\n\x06header\x18\x01 \x01(\x0b\x32%.SickScanPointCloudMsg.SickScanHeader\x12\x0e\n\x06height\x18\x02 \x01(\r\x12\r\n\x05width\x18\x03 \x01(\r\x12>\n\x06\x66ields\x18\x04 \x01(\x0b\x32..SickScanPointCloudMsg.SickScanPointFieldArray\x12\x14\n\x0cis_bigendian\x18\x05 \x01(\r\x12\x12\n\npoint_step\x18\x06 \x01(\r\x12\x10\n\x08row_step\x18\x07 \x01(\r\x12\x37\n\x04\x64\x61ta\x18\x08 \x01(\x0b\x32).SickScanPointCloudMsg.SickScanUint8Array\x12\x10\n\x08is_dense\x18\t \x01(\r\x12\x11\n\tnum_echos\x18\n \x01(\x05\x12\x13\n\x0bsegment_idx\x18\x0b \x01(\x05\x1a^\n\x0eSickScanHeader\x12\x0b\n\x03seq\x18\x01 \x01(\r\x12\x15\n\rtimestamp_sec\x18\x02 \x01(\r\x12\x16\n\x0etimestamp_nsec\x18\x03 \x01(\r\x12\x10\n\x08\x66rame_id\x18\x04 \x01(\x0c\x1aV\n\x15SickScanPointFieldMsg\x12\x0c\n\x04name\x18\x01 \x01(\x0c\x12\x0e\n\x06offset\x18\x02 \x01(\r\x12\x10\n\x08\x64\x61tatype\x18\x03 \x01(\r\x12\r\n\x05\x63ount\x18\x04 \x01(\r\x1a\x44\n\x12SickScanUint8Array\x12\x10\n\x08\x63\x61pacity\x18\x01 \x01(\x04\x12\x0c\n\x04size\x18\x02 \x01(\x04\x12\x0e\n\x06\x62uffer\x18\x03 \x01(\x0c\x1aw\n\x17SickScanPointFieldArray\x12\x10\n\x08\x63\x61pacity\x18\x01 \x01(\x04\x12\x0c\n\x04size\x18\x02 \x01(\x04\x12<\n\x06\x62uffer\x18\x03 \x03(\x0b\x32,.SickScanPointCloudMsg.SickScanPointFieldMsgb\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "lidar_pb2", globals())
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'lidar_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
-    DESCRIPTOR._options = None
-    _POINT3D._serialized_start = 15
-    _POINT3D._serialized_end = 57
-    _GETLIDARREQUEST._serialized_start = 59
-    _GETLIDARREQUEST._serialized_end = 76
-    _GETLIDARRESPONSE._serialized_start = 78
-    _GETLIDARRESPONSE._serialized_end = 122
+
+  DESCRIPTOR._options = None
+  _SICKSCANPOINTCLOUDMSG._serialized_start=16
+  _SICKSCANPOINTCLOUDMSG._serialized_end=739
+  _SICKSCANPOINTCLOUDMSG_SICKSCANHEADER._serialized_start=366
+  _SICKSCANPOINTCLOUDMSG_SICKSCANHEADER._serialized_end=460
+  _SICKSCANPOINTCLOUDMSG_SICKSCANPOINTFIELDMSG._serialized_start=462
+  _SICKSCANPOINTCLOUDMSG_SICKSCANPOINTFIELDMSG._serialized_end=548
+  _SICKSCANPOINTCLOUDMSG_SICKSCANUINT8ARRAY._serialized_start=550
+  _SICKSCANPOINTCLOUDMSG_SICKSCANUINT8ARRAY._serialized_end=618
+  _SICKSCANPOINTCLOUDMSG_SICKSCANPOINTFIELDARRAY._serialized_start=620
+  _SICKSCANPOINTCLOUDMSG_SICKSCANPOINTFIELDARRAY._serialized_end=739
 # @@protoc_insertion_point(module_scope)

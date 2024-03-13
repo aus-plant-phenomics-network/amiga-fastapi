@@ -37,6 +37,32 @@ from google.protobuf.json_format import MessageToJson
 from functools import reduce
 
 import open3d as o3d
+import sys
+
+
+import importlib
+
+sys.path.append(
+    f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/sick_scan_xd/python/api"
+)
+
+sick_scan_api = importlib.import_module("sick_scan_api")
+
+from sick_scan_api import *
+
+# Load sick_scan_library
+sick_scan_library = SickScanApiLoadLibrary(
+    [
+        "build/",
+        "build_linux/",
+        "../../build/",
+        "../../build_linux/",
+        "./",
+        "../",
+        "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/build/",
+    ],
+    "libsick_scan_xd_shared_lib.so",
+)
 
 logger = logging.getLogger("uvicorn")
 
@@ -123,7 +149,7 @@ async def subscribe(
             request=SubscribeRequest(uri=Uri(path=f"/{uri_path}"), every_n=every_n),
             decode=True,
         ):
-            print(f"Received message.")
+            # print(f"Received message.")
 
             if service_name == "lidar" and uri_path == "data":
                 lidar_buffer.append(message)
@@ -141,6 +167,118 @@ async def subscribe(
         # print(lidar_buffer)
 
 
+def pySickScanCartesianPointCloudMsgToXYZ(pointcloud_msg):
+    # get pointcloud fields
+    num_fields = pointcloud_msg.fields.size
+    msg_fields_buffer = pointcloud_msg.fields.buffer
+    field_offset_x = -1
+    field_offset_y = -1
+    field_offset_z = -1
+    for n in range(num_fields):
+        field_name = ctypesCharArrayToString(msg_fields_buffer[n].name)
+        field_offset = msg_fields_buffer[n].offset
+        if field_name == "x":
+            field_offset_x = msg_fields_buffer[n].offset
+        elif field_name == "y":
+            field_offset_y = msg_fields_buffer[n].offset
+        elif field_name == "z":
+            field_offset_z = msg_fields_buffer[n].offset
+    # Extract x,y,z
+    cloud_data_buffer_len = (
+        pointcloud_msg.row_step * pointcloud_msg.height
+    )  # length of polar cloud data in byte
+    assert (
+        pointcloud_msg.data.size == cloud_data_buffer_len
+        and field_offset_x >= 0
+        and field_offset_y >= 0
+        and field_offset_z >= 0
+    )
+    cloud_data_buffer = bytearray(cloud_data_buffer_len)
+    for n in range(cloud_data_buffer_len):
+        cloud_data_buffer[n] = pointcloud_msg.data.buffer[n]
+    points_x = np.zeros(pointcloud_msg.width * pointcloud_msg.height, dtype=np.float32)
+    points_y = np.zeros(pointcloud_msg.width * pointcloud_msg.height, dtype=np.float32)
+    points_z = np.zeros(pointcloud_msg.width * pointcloud_msg.height, dtype=np.float32)
+    point_idx = 0
+    for row_idx in range(pointcloud_msg.height):
+        for col_idx in range(pointcloud_msg.width):
+            # Get lidar point in polar coordinates (range, azimuth and elevation)
+            pointcloud_offset = (
+                row_idx * pointcloud_msg.row_step + col_idx * pointcloud_msg.point_step
+            )
+            points_x[point_idx] = np.frombuffer(
+                cloud_data_buffer,
+                dtype=np.float32,
+                count=1,
+                offset=pointcloud_offset + field_offset_x,
+            )[0]
+            points_y[point_idx] = np.frombuffer(
+                cloud_data_buffer,
+                dtype=np.float32,
+                count=1,
+                offset=pointcloud_offset + field_offset_y,
+            )[0]
+            points_z[point_idx] = np.frombuffer(
+                cloud_data_buffer,
+                dtype=np.float32,
+                count=1,
+                offset=pointcloud_offset + field_offset_z,
+            )[0]
+            point_idx = point_idx + 1
+    return points_x, points_y, points_z
+
+
+# TODO: Finish implementing this.
+def from_proto(protocol_message):
+
+    header = SickScanHeader(
+        seq=protocol_message.header.seq,
+        timestamp_sec=protocol_message.header.timestamp_sec,
+        timestamp_nsec=protocol_message.header.timestamp_nsec,
+        frame_id=protocol_message.header.frame_id,
+    )
+
+    elements = []
+    num_fields = protocol_message.fields.size
+
+    for n in range(num_fields):
+        field = SickScanPointFieldMsg(
+            name=protocol_message.fields[n].name,
+            offset=protocol_message.fields[n].offset,
+            datatype=protocol_message.fields[n].datatype,
+            count=protocol_message.fields[n].count,
+        )
+        elements.append(field)
+
+    fields = SickScanPointFieldArray(
+        capacity=protocol_message.fields.capacity,
+        size=protocol_message.fields.size,
+        buffer=elements,
+    )
+
+    data = SickScanUint8Array(
+        capacity=protocol_message.capacity,
+        size=protocol_message.data.size,
+        buffer=protocol_message.data.buffer,
+    )
+
+    message_contents = SickScanPointCloudMsg(
+        header=header,
+        height=protocol_message.height,
+        width=protocol_message.width,
+        fields=fields,
+        is_bigendian=protocol_message.is_bigendian,
+        point_step=protocol_message.point_step,
+        row_step=protocol_message.row_step,
+        data=data,
+        is_dense=protocol_message.is_dense,
+        num_echoes=protocol_message.num_echoes,
+        segment_idx=protocol_message.segment_idx,
+    )
+
+    return message_contents
+
+
 async def create_ply_file_from_buffer(lidar_buffer):
 
     # xyz = np.random.rand(100, 3)
@@ -149,8 +287,9 @@ async def create_ply_file_from_buffer(lidar_buffer):
 
     list_of_points = []
     for read in lidar_buffer:
-        for point in read.points:
-            list_of_points.append([point.x, point.y, point.z])
+        message = from_proto(read)
+        xyz = pySickScanCartesianPointCloudMsgToXYZ(message)
+        list_of_points.extend(xyz)
 
     logger.info(f"number of points: {len(list_of_points)}")
 

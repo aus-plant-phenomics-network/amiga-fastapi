@@ -13,6 +13,7 @@
 # limitations under the License.
 import argparse
 import asyncio
+import datetime
 import logging
 from pathlib import Path
 import os
@@ -25,6 +26,7 @@ from farm_ng.core.event_service_pb2 import EventServiceConfig
 from farm_ng.core.events_file_reader import proto_from_json_file
 from google.protobuf.empty_pb2 import Empty
 from google.protobuf.message import Message
+from collections import deque
 
 import lidar_pb2
 
@@ -44,40 +46,19 @@ See doc/sick_scan_api/sick_scan_api.md for further information.
 import os
 
 # Add paths to LD_LIBRARY_PATH and PYTHONPATH
-os.environ["LD_LIBRARY_PATH"] = (
-    f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/build"
-)
-os.environ["PYTHONPATH"] = (
+# os.environ["LD_LIBRARY_PATH"] = (
+#     f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/build"
+# )
+
+import importlib
+
+sys.path.append(
     f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/sick_scan_xd/python/api"
 )
 
+sick_scan_api = importlib.import_module("sick_scan_api")
 
-print(os.environ["PYTHONPATH"])
-
-
-# Make sure sick_scan_api is searched in all folders configured in environment variable PYTHONPATH
-def appendPythonPath():
-    pythonpath = os.environ["PYTHONPATH"]
-    print(os.environ["PYTHONPATH"])
-    for folder in pythonpath.split(";"):
-        sys.path.append(os.path.abspath(folder))
-    print(sys.path)
-
-
-try:
-    # import sick_scan_api
-    from sick_scan_api import *
-except ModuleNotFoundError:
-    print(
-        "import sick_scan_api failed, module sick_scan_api not found, trying with importlib..."
-    )
-    appendPythonPath()
-    import importlib
-
-    sick_scan_api = importlib.import_module("sick_scan_api")
-
-    from sick_scan_api import *
-
+from sick_scan_api import *
 
 # Load sick_scan_library
 sick_scan_library = SickScanApiLoadLibrary(
@@ -92,6 +73,54 @@ sick_scan_library = SickScanApiLoadLibrary(
     ],
     "libsick_scan_xd_shared_lib.so",
 )
+
+
+def to_proto(message_contents):
+    message_for_pb = lidar_pb2.SickScanPointCloudMsg()
+
+    message_for_pb.height = message_contents.height
+    message_for_pb.width = message_contents.width
+    message_for_pb.is_bigendian = message_contents.is_bigendian
+    message_for_pb.point_step = message_contents.point_step
+    message_for_pb.row_step = message_contents.row_step
+    message_for_pb.is_dense = message_contents.is_dense
+    message_for_pb.num_echos = message_contents.num_echos
+    message_for_pb.segment_idx = message_contents.segment_idx
+
+    header_for_pb = lidar_pb2.SickScanPointCloudMsg.SickScanHeader()
+    header_for_pb.seq = message_contents.header.seq
+    header_for_pb.timestamp_sec = message_contents.header.timestamp_sec
+    header_for_pb.timestamp_nsec = message_contents.header.timestamp_nsec
+    header_for_pb.frame_id = bytes(message_contents.header.frame_id)
+
+    data_for_pb = lidar_pb2.SickScanPointCloudMsg.SickScanUint8Array()
+    data_for_pb.capacity = message_contents.data.capacity
+    data_for_pb.size = message_contents.data.size
+    data_for_pb.buffer = bytes(message_contents.data.buffer)
+
+    fields_for_pb = lidar_pb2.SickScanPointCloudMsg.SickScanPointFieldArray()
+
+    fields_for_pb.capacity = message_contents.fields.capacity
+    fields_for_pb.size = message_contents.fields.size
+
+    num_fields = message_contents.fields.size
+    msg_fields_buffer = message_contents.fields.buffer
+
+    for n in range(num_fields):
+
+        field_message_for_pb = lidar_pb2.SickScanPointCloudMsg.SickScanPointFieldMsg()
+        field_message_for_pb.name = msg_fields_buffer[n].name
+        field_message_for_pb.offset = msg_fields_buffer[n].offset
+        # TODO: is this right?
+        field_message_for_pb.datatype = 0  # msg_fields_buffer[n].datatype
+        field_message_for_pb.count = 0  # msg_fields_buffer[n].count
+        fields_for_pb.buffer.append(field_message_for_pb)
+
+    message_for_pb.header.CopyFrom(header_for_pb)
+    message_for_pb.data.CopyFrom(data_for_pb)
+    message_for_pb.fields.CopyFrom(fields_for_pb)
+
+    return message_for_pb
 
 
 # Convert a SickScanCartesianPointCloudMsg to points
@@ -184,32 +213,61 @@ class LIDARServer:
 
     async def run(self) -> None:
         """Run the main task."""
-        global lidar_buffer
+        global lidar_buffer, last_published, count, times
 
-        lidar_buffer = []
+        times = []
+
+        lidar_buffer = deque(maxlen=1)
+        last_published = datetime.datetime.now() - datetime.timedelta(seconds=0.5)
+        count = 0
 
         # Create a sick_scan instance and initialize a TiM-7xx
         api_handle = SickScanApiCreate(sick_scan_library)
         SickScanApiInitByLaunchfile(sick_scan_library, api_handle, cli_args_for_sick)
 
-        def pySickScanCartesianPointCloudMsgCallback(api_handle, msg):
-            global lidar_buffer
-            """
-            Implement a callback to process pointcloud messages
-            Data processing to be done
-            """
-            # print(
-            #     "Python PointCloudMsgCb: {} x {} pointcloud message received".format(
-            #         msg.contents.width, msg.contents.height
-            #     )
-            # )
-            # print(f"There are {msg.contents.fields.size} fields.")
-            # for n in range(msg.contents.fields.size):
-            #     field_name = ctypesCharArrayToString(msg.contents.fields.buffer[n].name)
-            #     print(field_name)
-            if len(lidar_buffer) == 0:
-                xyz = pySickScanCartesianPointCloudMsgToXYZ(msg.contents)
-                lidar_buffer.append(xyz)
+        # def pySickScanCartesianPointCloudMsgCallback(api_handle, msg):
+        #     # global lidar_buffer
+        #     global last_read
+        #     """
+        #     Implement a callback to process pointcloud messages
+        #     Data processing to be done
+        #     """
+        #     # print(
+        #     #     "Python PointCloudMsgCb: {} x {} pointcloud message received".format(
+        #     #         msg.contents.width, msg.contents.height
+        #     #     )
+        #     # )
+        #     # print(f"There are {msg.contents.fields.size} fields.")
+        #     # for n in range(msg.contents.fields.size):
+        #     #     field_name = ctypesCharArrayToString(msg.contents.fields.buffer[n].name)
+        #     #     print(field_name)
+        #     # if len(lidar_buffer) == 0:
+        #
+        #     xyz = pySickScanCartesianPointCloudMsgToXYZ(msg.contents)
+        #     lidar_buffer.append(xyz)
+        # last_read = xyz  # msg.contents
+
+        def pySickScanCartesianPointCloudMsgCallback(api_handle, pointcloud_msg):
+            global lidar_buffer, last_published, count, times
+            pointcloud_msg = (
+                pointcloud_msg.contents
+            )  # dereference msg pointer (pointcloud_msg = pointcloud_msg[0])
+            # Note: Pointcloud conversion and visualization consumes cpu time, therefore we convert and publish the cartesian pointcloud with low frequency.
+            # cur_timestamp = datetime.datetime.now()
+            # if cur_timestamp >= last_published + datetime.timedelta(seconds=0.5):
+            # xyz = pySickScanCartesianPointCloudMsgToXYZ(pointcloud_msg)
+            # last_published = cur_timestamp
+
+            # TODO: Maybe don't buffer and just use ctypes.pointer(pointcloud_msg) to set it?
+            # lidar_buffer.append(pointcloud_msg)
+            # lidar_buffer.append(ctypes.pointer(pointcloud_msg))
+            start_time = datetime.datetime.now()
+            pb_message = to_proto(pointcloud_msg)
+            end_time = datetime.datetime.now()
+            times.append(end_time - start_time)
+            lidar_buffer.append(pb_message)
+            count += 1
+            # print(count)
 
         # Register for pointcloud messages
         cartesian_pointcloud_callback = SickScanPointCloudMsgCallback(
@@ -220,25 +278,33 @@ class LIDARServer:
         )
 
         # count = 0
-        while True:
-            # print("Lidar buffer", type(lidar_buffer), lidar_buffer)
+        while True:  # self._counter < 2400:
 
             if len(lidar_buffer) > 0:
-                new_read = lidar_buffer.pop()
+                # self.logger.warning(f"len lidar buffer {len(lidar_buffer)}")
+                pointcloud_msg = lidar_buffer.pop()
 
-                point_cloud = lidar_pb2.GetLIDARResponse()
+                # pb_message = lidar_pb2.PBSickScanPointCloudMsg()
+                # self.logger.warning(type(pointcloud_msg))
+                # self.logger.warning(type(pb_message))
+                # pb_message.data = bytes(pointcloud_msg)
 
-                for i in range(0, len(new_read[0])):
-                    point = point_cloud.points.add()
-                    point.x = new_read[0][i]
-                    point.y = new_read[1][i]
-                    point.z = self._counter  # new_read[2][i]
+                await self._event_service.publish("/data", pointcloud_msg)
 
-                await self._event_service.publish("/data", point_cloud)
+                # new_read = pySickScanCartesianPointCloudMsgToXYZ(pointcloud_msg)
+                #
+                # point_cloud = lidar_pb2.GetLIDARResponse()
+                #
+                # for i in range(0, len(new_read[0])):
+                #     point = point_cloud.points.add()
+                #     point.x = new_read[0][i]
+                #     point.y = new_read[1][i]
+                #     point.z = self._counter  # new_read[2][i]
+                #
+                # await self._event_service.publish("/data", point_cloud)
                 # only increase counter when data is sent to stop z-stretching
                 self._counter += 1
-            #await asyncio.sleep(1)
-            # count += 1
+            # await asyncio.sleep(5)
 
         SickScanApiDeregisterCartesianPointCloudMsg(
             sick_scan_library, api_handle, cartesian_pointcloud_callback
@@ -246,6 +312,9 @@ class LIDARServer:
         SickScanApiClose(sick_scan_library, api_handle)
         SickScanApiRelease(sick_scan_library, api_handle)
         SickScanApiUnloadLibrary(sick_scan_library)
+        print(count)
+        print(sum(delta.total_seconds() for delta in times) / len(times))
+        exit()
 
     async def serve(self) -> None:
         await asyncio.gather(self._event_service.serve(), self.run())

@@ -22,7 +22,7 @@
 
             let chartInitialized = false;
             let socket;
-let messageCounter = 0; // Initialize message counter
+            let messageCounter = 0; // Initialize message counter
 
             document.getElementById('startButton').addEventListener('click', function () {
 
@@ -34,10 +34,11 @@ let messageCounter = 0; // Initialize message counter
                     console.log('WebSocket connection established');
                 };
                 socket.onmessage = function (event) {
-    messageCounter++;
+                    messageCounter++;
+                    console.log('Message received.');
 
-    // Check if the current message is the 10th message
-    if (messageCounter % 10 === 0) {
+                    // Check if the current message is the 100th message
+                    if (messageCounter % 1 === 0) {
 
                         // Parse data received from WebSocket
                         const data = JSON.parse(JSON.parse(event.data));
@@ -108,7 +109,7 @@ let messageCounter = 0; // Initialize message counter
                                 }
                             )
                         }
-}
+                    }
                 };
                 socket.onclose = function (event) {
                     console.log('WebSocket connection closed');

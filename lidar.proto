@@ -2,15 +2,42 @@
 
 syntax = "proto3";
 
-message Point3D {
-  float x = 1;
-  float y = 2;
-  float z = 3;
-}
+message SickScanPointCloudMsg {
+  message SickScanHeader {
+    uint32 seq = 1;                         // sequence ID: consecutively increasing ID
+    uint32 timestamp_sec = 2;               // seconds part of message timestamps: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')
+    uint32 timestamp_nsec = 3;              // seconds part of message timestamps: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')
+    bytes frame_id = 4;                    // Frame this data is associated with
+  }
 
-message GetLIDARRequest {
-}
+  message SickScanPointFieldMsg {
+    bytes name = 1;                   // Name of field (max. length 256 characters)
+    uint32 offset = 2;                 // Offset from start of point struct
+    uint32 datatype = 3;               // Datatype enumeration (see SickScanNativeDataType), equivalent to type enum in ros::sensor_msgs::PointField
+    uint32 count = 4;                  // How many elements in the field
+  }
 
-message GetLIDARResponse {
-  repeated Point3D points = 1;
+  message SickScanUint8Array {
+    uint64 capacity = 1;                           // Number of allocated elements, i.e. max. number of elements in buffer
+    uint64 size = 2;                               // Number of currently used elements in the buffer
+    bytes buffer = 3;                              // Memory, data in plain order and system endianess
+  }
+
+  message SickScanPointFieldArray {
+    uint64 capacity = 1;                                 // Number of allocated elements, i.e. max. number of elements in buffer
+    uint64 size = 2;                                     // Number of currently used elements in the buffer
+    repeated SickScanPointFieldMsg buffer = 3;         // Array of SickScanPointFieldMsg
+  }
+
+  SickScanHeader header = 1;
+  uint32 height = 2;
+  uint32 width = 3;
+  SickScanPointFieldArray fields = 4;
+  uint32 is_bigendian = 5;
+  uint32 point_step = 6;
+  uint32 row_step = 7;
+  SickScanUint8Array data = 8;
+  uint32 is_dense = 9;
+  int32 num_echos = 10;
+  int32 segment_idx = 11;
 }
