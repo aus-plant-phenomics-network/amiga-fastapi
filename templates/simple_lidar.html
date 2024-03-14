@@ -49,6 +49,8 @@
                         const yData = data['y'];//points.map(point => point.y);
                         const zData = data['z'];//points.map(point => point.z);
                         console.log(xData, yData, zData);
+                        console.log(Math.min(...zData));
+                        console.log(Math.max(...zData));
 
                         // Define the colorscale (green-red)
                         const colorscale = [[0, 'green'], [1, 'red']];
@@ -61,7 +63,8 @@
                                 range: [-1, 1] // Specify the range for the y-axis
                             },
                             zaxis: {
-                                range: [0, 10000] // Specify the range for the y-axis
+                                //range: [Math.min(...zData), Math.max(...zData)] // Specify the range for the y-axis
+                                autorange: true  // Automatically adjust the z-axis scale
                             }
                         };
 
