@@ -151,16 +151,19 @@ async def subscribe(
             if service_name == "lidar" and uri_path == "data":
                 lidar_buffer.append(message)
 
-                x_values, y_values, z_values = pySickScanCartesianPointCloudMsgToXYZ(
-                    message, start_time
-                )
+                # Only parse every 50th message.
+                if len(lidar_buffer) % 50 == 0:
 
-                obj = {
-                    "x": [float(x) for x in x_values],
-                    "y": [float(y) for y in y_values],
-                    "z": [float(z) for z in z_values],
-                }
-                await websocket.send_json(obj)
+                    x_values, y_values, z_values = (
+                        pySickScanCartesianPointCloudMsgToXYZ(message, start_time)
+                    )
+
+                    obj = {
+                        "x": [float(x) for x in x_values],
+                        "y": [float(y) for y in y_values],
+                        "z": [float(z) for z in z_values],
+                    }
+                    await websocket.send_json(obj)
             else:
                 await websocket.send_json(MessageToJson(message))
 
