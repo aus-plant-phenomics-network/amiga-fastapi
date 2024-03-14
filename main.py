@@ -154,7 +154,19 @@ async def subscribe(
             if service_name == "lidar" and uri_path == "data":
                 lidar_buffer.append(message)
 
-            await websocket.send_json(MessageToJson(message))
+                x_values, y_values, z_values = pySickScanCartesianPointCloudMsgToXYZ(
+                    message
+                )
+
+               # TODO: Re-instate mock z-values
+                obj = {
+                        "x": [float(x) for x in x_values],
+                        "y": [float(y) for y in y_values],
+                        "z": [float(z) for z in z_values],
+                    }
+                await websocket.send_json(obj)
+            else:
+                await websocket.send_json(MessageToJson(message))
 
         await websocket.close()
     except WebSocketDisconnect:
@@ -228,7 +240,6 @@ def pySickScanCartesianPointCloudMsgToXYZ(pointcloud_msg):
     return points_x, points_y, points_z
 
 
-# TODO: Finish implementing this.
 def from_proto(protocol_message):
 
     header = SickScanHeader(
@@ -238,17 +249,18 @@ def from_proto(protocol_message):
         frame_id=protocol_message.header.frame_id,
     )
 
-    elements = []
     num_fields = protocol_message.fields.size
+    array = SickScanPointFieldMsg * num_fields
+    elements = array()
 
     for n in range(num_fields):
         field = SickScanPointFieldMsg(
-            name=protocol_message.fields[n].name,
-            offset=protocol_message.fields[n].offset,
-            datatype=protocol_message.fields[n].datatype,
-            count=protocol_message.fields[n].count,
+            name=protocol_message.fields.buffer[n].name,
+            offset=protocol_message.fields.buffer[n].offset,
+            datatype=protocol_message.fields.buffer[n].datatype,
+            count=protocol_message.fields.buffer[n].count,
         )
-        elements.append(field)
+        elements[n] = field
 
     fields = SickScanPointFieldArray(
         capacity=protocol_message.fields.capacity,
@@ -256,10 +268,16 @@ def from_proto(protocol_message):
         buffer=elements,
     )
 
+    byte_data = bytes(protocol_message.data.buffer)
+    size = len(byte_data)
+    buffer_copy = bytearray(byte_data)
+    buffer_type = ctypes.c_uint8 * size
+    buffer_instance = buffer_type.from_buffer(buffer_copy)
+
     data = SickScanUint8Array(
-        capacity=protocol_message.capacity,
+        capacity=protocol_message.data.capacity,
         size=protocol_message.data.size,
-        buffer=protocol_message.data.buffer,
+        buffer=buffer_instance,
     )
 
     message_contents = SickScanPointCloudMsg(
@@ -272,7 +290,7 @@ def from_proto(protocol_message):
         row_step=protocol_message.row_step,
         data=data,
         is_dense=protocol_message.is_dense,
-        num_echoes=protocol_message.num_echoes,
+        num_echos=protocol_message.num_echos,
         segment_idx=protocol_message.segment_idx,
     )
 
@@ -290,6 +308,7 @@ async def create_ply_file_from_buffer(lidar_buffer):
         message = from_proto(read)
         xyz = pySickScanCartesianPointCloudMsgToXYZ(message)
         list_of_points.extend(xyz)
+        print(list_of_points, flush=True)
 
     logger.info(f"number of points: {len(list_of_points)}")
 

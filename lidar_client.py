@@ -50,7 +50,9 @@ async def command_subscribe(client: LIDARClient) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="farm-ng-service")
-    parser.add_argument("--service-config", type=Path, required=True, help="The service config.")
+    parser.add_argument(
+        "--service-config", type=Path, required=True, help="The service config."
+    )
 
     sub_parsers = parser.add_subparsers(dest="command")
     sub_parsers.add_parser("subscribe", help="Subscribe to the counter service.")
@@ -59,7 +61,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # load the service config
-    service_config: EventServiceConfig = proto_from_json_file(args.service_config, EventServiceConfig())
+    service_config: EventServiceConfig = proto_from_json_file(
+        args.service_config, EventServiceConfig()
+    )
 
     client = LIDARClient(service_config)
 

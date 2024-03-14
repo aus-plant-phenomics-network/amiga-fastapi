@@ -76,51 +76,56 @@ sick_scan_library = SickScanApiLoadLibrary(
 
 
 def to_proto(message_contents):
-    message_for_pb = lidar_pb2.SickScanPointCloudMsg()
+    protocolbuf = lidar_pb2.SickScanPointCloudMsg()
 
-    message_for_pb.height = message_contents.height
-    message_for_pb.width = message_contents.width
-    message_for_pb.is_bigendian = message_contents.is_bigendian
-    message_for_pb.point_step = message_contents.point_step
-    message_for_pb.row_step = message_contents.row_step
-    message_for_pb.is_dense = message_contents.is_dense
-    message_for_pb.num_echos = message_contents.num_echos
-    message_for_pb.segment_idx = message_contents.segment_idx
+    protocolbuf.height = message_contents.height
+    protocolbuf.width = message_contents.width
+    protocolbuf.is_bigendian = message_contents.is_bigendian
+    protocolbuf.point_step = message_contents.point_step
+    protocolbuf.row_step = message_contents.row_step
+    protocolbuf.is_dense = message_contents.is_dense
+    protocolbuf.num_echos = message_contents.num_echos
+    protocolbuf.segment_idx = message_contents.segment_idx
 
-    header_for_pb = lidar_pb2.SickScanPointCloudMsg.SickScanHeader()
-    header_for_pb.seq = message_contents.header.seq
-    header_for_pb.timestamp_sec = message_contents.header.timestamp_sec
-    header_for_pb.timestamp_nsec = message_contents.header.timestamp_nsec
-    header_for_pb.frame_id = bytes(message_contents.header.frame_id)
+    protocol_buf_header = lidar_pb2.SickScanPointCloudMsg.SickScanHeader()
+    protocol_buf_header.seq = message_contents.header.seq
+    protocol_buf_header.timestamp_sec = message_contents.header.timestamp_sec
+    protocol_buf_header.timestamp_nsec = message_contents.header.timestamp_nsec
+    protocol_buf_header.frame_id = bytes(message_contents.header.frame_id)
 
-    data_for_pb = lidar_pb2.SickScanPointCloudMsg.SickScanUint8Array()
-    data_for_pb.capacity = message_contents.data.capacity
-    data_for_pb.size = message_contents.data.size
-    data_for_pb.buffer = bytes(message_contents.data.buffer)
+    protocol_buf_data = lidar_pb2.SickScanPointCloudMsg.SickScanUint8Array()
+    protocol_buf_data.capacity = message_contents.data.capacity
+    protocol_buf_data.size = message_contents.data.size
 
-    fields_for_pb = lidar_pb2.SickScanPointCloudMsg.SickScanPointFieldArray()
+    buffer = ctypes.cast(
+        message_contents.data.buffer,
+        ctypes.POINTER(ctypes.c_uint8 * message_contents.data.size),
+    ).contents
+    protocol_buf_data.buffer = bytes(buffer)
 
-    fields_for_pb.capacity = message_contents.fields.capacity
-    fields_for_pb.size = message_contents.fields.size
+    protocol_buf_fields = lidar_pb2.SickScanPointCloudMsg.SickScanPointFieldArray()
+
+    protocol_buf_fields.capacity = message_contents.fields.capacity
+    protocol_buf_fields.size = message_contents.fields.size
 
     num_fields = message_contents.fields.size
-    msg_fields_buffer = message_contents.fields.buffer
 
     for n in range(num_fields):
 
         field_message_for_pb = lidar_pb2.SickScanPointCloudMsg.SickScanPointFieldMsg()
-        field_message_for_pb.name = msg_fields_buffer[n].name
-        field_message_for_pb.offset = msg_fields_buffer[n].offset
-        # TODO: is this right?
-        field_message_for_pb.datatype = 0  # msg_fields_buffer[n].datatype
-        field_message_for_pb.count = 0  # msg_fields_buffer[n].count
-        fields_for_pb.buffer.append(field_message_for_pb)
 
-    message_for_pb.header.CopyFrom(header_for_pb)
-    message_for_pb.data.CopyFrom(data_for_pb)
-    message_for_pb.fields.CopyFrom(fields_for_pb)
+        field_message_for_pb.name = message_contents.fields.buffer[n].name
+        field_message_for_pb.offset = message_contents.fields.buffer[n].offset
+        field_message_for_pb.datatype = message_contents.fields.buffer[n].datatype
+        field_message_for_pb.count = message_contents.fields.buffer[n].count
 
-    return message_for_pb
+        protocol_buf_fields.buffer.append(field_message_for_pb)
+
+    protocolbuf.header.CopyFrom(protocol_buf_header)
+    protocolbuf.data.CopyFrom(protocol_buf_data)
+    protocolbuf.fields.CopyFrom(protocol_buf_fields)
+
+    return protocolbuf
 
 
 # Convert a SickScanCartesianPointCloudMsg to points
@@ -266,6 +271,10 @@ class LIDARServer:
             end_time = datetime.datetime.now()
             times.append(end_time - start_time)
             lidar_buffer.append(pb_message)
+
+            if count == 0:
+                print(pySickScanCartesianPointCloudMsgToXYZ(pointcloud_msg))
+
             count += 1
             # print(count)
 
@@ -304,7 +313,7 @@ class LIDARServer:
                 # await self._event_service.publish("/data", point_cloud)
                 # only increase counter when data is sent to stop z-stretching
                 self._counter += 1
-            # await asyncio.sleep(5)
+            await asyncio.sleep(2)
 
         SickScanApiDeregisterCartesianPointCloudMsg(
             sick_scan_library, api_handle, cartesian_pointcloud_callback

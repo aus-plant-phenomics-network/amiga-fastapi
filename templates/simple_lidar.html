@@ -36,17 +36,19 @@
                 socket.onmessage = function (event) {
                     messageCounter++;
                     console.log('Message received.');
+                    //console.log(event.data);
 
                     // Check if the current message is the 100th message
-                    if (messageCounter % 1 === 0) {
+                    if (1 === 1){//messageCounter % 1 === 0) {
 
                         // Parse data received from WebSocket
-                        const data = JSON.parse(JSON.parse(event.data));
+                        const data = JSON.parse(event.data);
 
                         // Extract x and y coordinates from data points
-                        const xData = data.points.map(point => point.x);
-                        const yData = data.points.map(point => point.y);
-                        const zData = data.points.map(point => point.z);
+                        const xData = data['x'];//points.map(point => point.x);
+                        const yData = data['y'];//points.map(point => point.y);
+                        const zData = data['z'];//points.map(point => point.z);
+                        console.log(xData, yData, zData);
 
                         // Define the colorscale (green-red)
                         const colorscale = [[0, 'green'], [1, 'red']];
@@ -62,6 +64,8 @@
                                 range: [0, 10000] // Specify the range for the y-axis
                             }
                         };
+
+
                         const trace = {
                             x: xData,
                             y: yData,
