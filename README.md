@@ -3,7 +3,7 @@
 This repository was created from the Amiga React/FastAPI template, following the guide [here](https://amiga.farm-ng.com/docs/brain/brain-apps/).
 
 ## Application Overview
-The application is comprised of two services, the `lidar-service` and the `lidar-app` which are defined in the `manifest.json` file.
+The application includes two services, the `lidar-service` and the `lidar-app` which are defined in the `manifest.json` file.
 
 ### lidar-service
 The LiDAR service is based heavily on the [example code available with the SICK API](https://github.com/SICKAG/sick_scan_xd/blob/develop/examples/python/minimum_sick_scan_api_client.py), merged into the [example service available](https://amiga.farm-ng.com/docs/examples/service_counter/) from farm-ng.
@@ -11,17 +11,14 @@ The LiDAR service is based heavily on the [example code available with the SICK 
 The general principle is to define this as a "publisher", extending the `EventServiceGrpc` class and have the app "subscribe" to the service.
 
 __Notes/TODO:__
-* Currently, the implementation here is that the message from the LiDAR is stored in a buffer of length 1, and the data are published every 2 seconds. Some testing is required to work out the best way to handle passing these messages and what the timing and throughput limitations might be.
+* The service is defined to start running and publishing data when the amiga boots up. We might not want to implement it this way.
 * The data is converted to a list of (x,y,z) points with a timer/counter being inserted as the z-value because the LiDAR does not have a world-coordinate representation of any movement.
-* The example code includes shutdown/deregistration code which is not implemented in the service so far. This means that it does not shut down cleanly and sometimes needs to be restarted.
-* Similarly, the service is defined to start running and publishing data when the amiga boots up. We might not want to implement it this way.
 
 ### lidar-app
 The basis for the template assumes ReactJS expertise, which I do not have. For the purposes of demoing the LiDAR connectivity, we are simply returning a Jinja2/HTML template directly from FastAPI which has embedded Javascript to create a Plotly graph of the streaming data.
 
 __Notes/TODO:__
-* At the moment there is no start/stop button, the data just keeps coming in.
-* The data is also only handled in Javascript, in terms of "recording" the data, it would be better to define another app/service to subscribe to the lidar and store it on the brain's internal storage.
+* When you start the scanning a buffer is created in the `lidar-app` which keeps track of the lidar messages. ~1/100 of them are processed for display and sent to the frontend over a websocket but most are just kept in memory and processed into a pointcloud when the stop button is pressed.
 
 
 ## Local Development
