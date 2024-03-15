@@ -122,7 +122,9 @@ class LIDARServer:
                 await self._event_service.publish("/data", pointcloud_msg)
 
                 self._counter += 1
-            # await asyncio.sleep(0.001)
+            else:
+                print("lidar_buffer_empty", flush=True)
+            await asyncio.sleep(1 / 600)
 
         await finalise_sick(self.api_handle)
 
