@@ -122,20 +122,16 @@ class LIDARServer:
                 await self._event_service.publish("/data", pointcloud_msg)
 
                 self._counter += 1
-            # await asyncio.sleep(0.001)
-
-        await finalise_sick(self.api_handle)
+            elif self._counter > 0:
+                print("lidar_buffer_empty", flush=True)
+                await finalise_sick(self)
+                exit(-1)
+            else:
+                pass
+            await asyncio.sleep(1 / 600)
 
     async def serve(self) -> None:
         await asyncio.gather(self._event_service.serve(), self.run())
-
-    # TODO: Add a "on killed or stopped" service function
-
-    # Close lidar and release sick_scan api
-    # SickScanApiDeregisterCartesianPointCloudMsg(sick_scan_library, api_handle, cartesian_pointcloud_callback)
-    # SickScanApiClose(sick_scan_library, api_handle)
-    # SickScanApiRelease(sick_scan_library, api_handle)
-    # SickScanApiUnloadLibrary(sick_scan_library)
 
 
 async def finalise_sick(event_service):
