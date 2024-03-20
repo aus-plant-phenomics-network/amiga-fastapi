@@ -151,8 +151,7 @@ async def subscribe(
             if service_name == "lidar" and uri_path == "data":
                 lidar_buffer.append(message)
 
-                # Only parse every 50th message.
-                if len(lidar_buffer) % 50 == 0:
+                if len(lidar_buffer) % 100 == 0:
 
                     x_values, y_values, z_values = (
                         pySickScanCartesianPointCloudMsgToXYZ(message, start_time)
