@@ -34,3 +34,12 @@ services:
       - ./lidar_service.py:/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/lidar_service.py
       - ./lidar_pb2.py:/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/lidar_pb2.py
       - ./utils.py:/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/utils.py
+  lidar-emulator:
+    build: .
+    container_name: lidar-emulator
+    ports:
+      - "2112:2112"
+      - "2111:2111"
+    volumes:
+      - ./run_simulation.sh:/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/run_simulation.sh
+    command: [ "/bin/bash","run_simulation.sh" ]

@@ -28,13 +28,17 @@ RUN apt-get -y install \
     libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt update
+
+RUN apt-get install -y libjsonrpccpp-dev libjsonrpccpp-tools
+
 
 # Clone and build SICKAPI.
 RUN mkdir -p ./sick_scan_ws
 RUN git clone https://github.com/SICKAG/sick_scan_xd.git ./sick_scan_ws/sick_scan_xd
 RUN mkdir -p ./sick_scan_ws/build
 RUN export ROS_VERSION=0
-RUN cmake -B ./sick_scan_ws/build -DROS_VERSION=0 -DLDMRS=0 -DSCANSEGMENT_XD=0 -G "Unix Makefiles" ./sick_scan_ws/sick_scan_xd
+RUN cmake -B ./sick_scan_ws/build -DROS_VERSION=0 -DLDMRS=0 -DSCANSEGMENT_XD=0 -DCMAKE_ENABLE_EMULATOR=1 -G "Unix Makefiles" ./sick_scan_ws/sick_scan_xd
 RUN make -j4 -C ./sick_scan_ws/build
 RUN make -j4 -C ./sick_scan_ws/build install
 
@@ -76,3 +80,4 @@ WORKDIR /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi
 COPY templates .
 COPY *.py .
 COPY *.json .
+COPY *.sh .
