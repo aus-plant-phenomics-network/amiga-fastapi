@@ -5,10 +5,10 @@ This repository was created from the Amiga React/FastAPI template, following the
 
 This prototype application is designed to run on the Amiga Brain, following farm_ng's best practices, and connect to (one in the first instance, but later two) SICK LMS 4000 LiDAR scanners to measure crops.
 
-Per the instructions on [brain apps manifest](https://amiga.farm-ng.com/docs/brain/brain-apps-manifest), an application for the Brain can be packaged as multiple services and apps. The design for this application includes both the `lidar-service` and the `lidar-app` which are defined in the `manifest.json` file.
+Per the instructions on [brain apps manifest](https://amiga.farm-ng.com/docs/brain/brain-apps-manifest), an application for the Brain can be packaged as multiple services and apps. The design for this application includes both the `lidar-service` and the `lidar-app` which are defined in the `manifest.json` file. This file details the run commands, include arguments.
 
 ### lidar-service
-The LiDAR service is based heavily on the [example code available with the SICK API](https://github.com/SICKAG/sick_scan_xd/blob/develop/examples/python/minimum_sick_scan_api_client.py), merged into the [example service available](https://amiga.farm-ng.com/docs/examples/service_counter/) from farm-ng.
+The LiDAR service is based heavily on the [example code available with the SICK API](https://github.com/SICKAG/sick_scan_xd/blob/develop/examples/python/minimum_sick_scan_api_client.py), merged into the [example service available](https://amiga.farm-ng.com/docs/examples/service_counter/) from farm-ng. The code is in `lidar_service.py`.
 
 The general approach was to implement the `EventServiceGrpc` class, and use the protocol buffer message defined `lidar.proto` and "publish" the encoded LiDAR message and have the app "subscribe" to the service.
 
@@ -18,7 +18,7 @@ __Notes/TODO:__
 * The service is defined to start running and publishing data when the amiga boots up. We might not want to implement it this way. It might be better to define start and stop methods for the LiDAR scanner itself.
 
 ### lidar-app
-The template upon which this app is based assumes ReactJS expertise, which I do not have. For the purposes of demoing the LiDAR connectivity, we are simply returning an HTML/Javascript file directly from FastAPI which creates a Plotly graph of the streaming data.
+The template upon which this app is based assumes ReactJS expertise, which I do not have. For the purposes of demoing the LiDAR connectivity, we are simply returning an HTML/Javascript file directly from FastAPI which creates a Plotly graph of the streaming data. The code is in `main.py`.
 
 __Notes/TODO:__
 * When you start the scanning a buffer is created in the `lidar-app` which keeps track of the lidar messages. ~1/100 of them are processed for display and sent to the frontend over a websocket but most are just kept in memory and processed and written to a pointcloud (.ply file) when the stop button is pressed. It might be better to write these messages to disk, rather than keep them in memory.
