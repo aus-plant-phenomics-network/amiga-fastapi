@@ -16,7 +16,6 @@ import asyncio
 import datetime
 import importlib
 import logging
-import signal
 import sys
 from collections import deque
 from pathlib import Path
@@ -67,7 +66,6 @@ def pySickScanCartesianPointCloudMsgCallback(api_handle, pointcloud_msg):
 
 
 class LIDARServer:
-    """A simple service that implements the AddTwoInts service."""
 
     def __init__(self, event_service: EventServiceGrpc) -> None:
         """Initialize the service.
@@ -128,6 +126,7 @@ class LIDARServer:
                 exit(-1)
             else:
                 pass
+            # TODO: Not sure if this is necessary and/or breaking things.
             await asyncio.sleep(1 / 600)
 
     async def serve(self) -> None:
