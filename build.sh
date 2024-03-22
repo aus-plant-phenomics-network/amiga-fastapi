@@ -4,6 +4,8 @@
 python3 -m venv venv
 source venv/bin/activate
 
+# TODO: update pip and setuptools first.
+
 # install dependencies
 pip install -r requirements.txt
 
@@ -12,4 +14,5 @@ cd ts/
 npm install
 npm run build
 
-# TODO: Install SICK LIDAR here?
+
+#TODO: install all prerequisites (e.g. ffmpeg libsm6 libxext6 on the brain) also.

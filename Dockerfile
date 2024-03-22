@@ -10,7 +10,6 @@ RUN apt update
 RUN apt install -y software-properties-common
 RUN add-apt-repository ppa:deadsnakes/ppa -y
 RUN apt update
-#TODO: install ffmpeg libsm6 libxext6 on the brain also?
 RUN apt-get -y install \
     tzdata \
     git \

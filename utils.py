@@ -230,7 +230,7 @@ async def create_ply_file_from_buffer(lidar_buffer, start_time):
         x_values, y_values, z_values = pySickScanCartesianPointCloudMsgToXYZ(
             message, start_time
         )
-        # TODO: Use z/timestamp instead of scaled index.
+        # TODO: Use timestamp instead of scaled index for z values?
         xyz_points = np.array(
             [[x, y, i / 100] for x, y, z in zip(x_values, y_values, z_values)]
         )
