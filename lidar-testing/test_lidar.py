@@ -91,7 +91,8 @@ SickScanApiInitByLaunchfile(sick_scan_library, api_handle, cli_args)
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
 lidar_ip_addr = sys.argv[2]  # Get ip addresss
-new_folder_name = "Lidar_" + lidar_ip_addr[-3:] + "_data"
+#new_folder_name = "Lidar_" + lidar_ip_addr[-3:] + "_data"
+new_folder_name = f"Lidar_{lidar_ip_addr[-3:]}_data_{datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}"
 # Create new folder path
 new_folder_path = os.path.join(current_directory, new_folder_name)
 # Check if the folder already exists, if not, create it
@@ -112,7 +113,7 @@ SickScanApiRegisterCartesianPointCloudMsg(
 
 # Run application or main loop
 message_count = 0
-run_time = 60
+run_time = 90
 time.sleep(run_time)
 
 # Close lidar and release sick_scan api

@@ -7,7 +7,7 @@ import open3d as o3d
 
 import lidar_pb2
 from utils import from_proto, pySickScanCartesianPointCloudMsgToXYZ
-
+from tqdm import tqdm
 
 # Make sure sick_scan_api is searched in all folders configured in environment variable PYTHONP>
 def appendPythonPath():
@@ -43,11 +43,17 @@ def read_and_parse_all_files(directory):
 # Replace "directory_path" with the path to the directory containing binary files
 for lidar in ["102", "103"]:
     directory = f"Lidar_{lidar}_data"
-    parsed_data = read_and_parse_all_files(directory)
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+
+    lidar_directory = os.path.join(current_directory, directory)
+
+    print(lidar_directory)
+
+    parsed_data = read_and_parse_all_files(lidar_directory)
 
     pcd = o3d.geometry.PointCloud()
 
-    for i, datum in enumerate(parsed_data):
+    for i, datum in tqdm(enumerate(parsed_data), total=len(parsed_data)):
 
         protocolbuf = lidar_pb2.SickScanPointCloudMsg()
         protocolbuf.ParseFromString(datum)
