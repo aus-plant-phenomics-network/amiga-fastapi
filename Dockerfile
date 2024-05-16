@@ -75,6 +75,7 @@ RUN npm install
 RUN npm run build
 
 WORKDIR /mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi
+ENV PYTHONPATH "${PYTHONPATH}:/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/sick_scan_xd/python/api"
 
 COPY templates .
 COPY *.py .

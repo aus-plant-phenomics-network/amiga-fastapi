@@ -11,14 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import argparse
 import asyncio
-from datetime import datetime
-import importlib
 import logging
-import os
-import sys
-from collections import deque
+from datetime import datetime
 from pathlib import Path
 
 import grpc
@@ -28,31 +25,9 @@ from farm_ng.core.event_service_pb2 import EventServiceConfig
 from farm_ng.core.events_file_reader import proto_from_json_file
 from google.protobuf.empty_pb2 import Empty
 from google.protobuf.message import Message
-
-from utils import to_proto
-
-sys.path.append(
-    f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/sick_scan_xd/python/api"
-)
-
-sick_scan_api = importlib.import_module("sick_scan_api")
-
 from sick_scan_api import *
 
-sick_scan_library = SickScanApiLoadLibrary(
-    [
-        "build/",
-        "build_linux/",
-        "../../build/",
-        "../../build_linux/",
-        "./",
-        "../",
-        "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/build/",
-    ],
-    "libsick_scan_xd_shared_lib.so",
-)
-
-api_handle = SickScanApiCreate(sick_scan_library)
+from utils import sick_scan_library, api_handle, to_proto
 
 DATE_FORMAT = "%Y-%m-%d_%H-%M-%S_%f"
 PUBLISH_RATE = 600
@@ -73,6 +48,7 @@ def pyCustomizedPointCloudMsgCb(api_handle, pointcloud_msg):
 
     lidar_buffer = protocol_buffer
 
+
 class LIDARServer:
 
     def __init__(self, event_service: EventServiceGrpc) -> None:
@@ -88,7 +64,6 @@ class LIDARServer:
         self._counter = 0
         self._rate: float = 1.0
         lidar_buffer = None
-
 
     @property
     def logger(self) -> logging.Logger:
@@ -106,9 +81,7 @@ class LIDARServer:
 
     async def perform_lidar_sweep(self):
         global BASE_DIR, lidar_buffer
-        SickScanApiInitByLaunchfile(
-            sick_scan_library, api_handle, cli_args_for_sick
-        )
+        SickScanApiInitByLaunchfile(sick_scan_library, api_handle, cli_args_for_sick)
         # Register for pointcloud messages
         cartesian_pointcloud_callback = SickScanPointCloudMsgCallback(
             pyCustomizedPointCloudMsgCb
@@ -141,18 +114,15 @@ class LIDARServer:
 
             await asyncio.sleep(1.0 / self._rate)
 
-
     async def serve(self) -> None:
         await asyncio.gather(self._event_service.serve(), self.run())
 
 
-
-
-async def shutdown(loop, event_service):
-    print("Shutdown initiated...")
-    await finalise_sick(event_service)
-    print("Shutdown complete.")
-    loop.stop()
+# async def shutdown(loop, event_service):
+#     print("Shutdown initiated...")
+#     await finalise_sick(event_service)
+#     print("Shutdown complete.")
+#     loop.stop()
 
 
 if __name__ == "__main__":

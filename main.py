@@ -15,10 +15,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import importlib
 import json
 import logging
-import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -34,36 +32,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from google.protobuf.json_format import MessageToJson
 from google.protobuf.empty_pb2 import Empty
+from google.protobuf.json_format import MessageToJson
 
-
-from utils import pySickScanCartesianPointCloudMsgToXYZ, create_ply_file_from_buffer
-
-sys.path.append(
-    f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/sick_scan_xd/python/api"
-)
-
-sick_scan_api = importlib.import_module("sick_scan_api")
-
-from sick_scan_api import *
-
-sick_scan_library = SickScanApiLoadLibrary(
-    [
-        "build/",
-        "build_linux/",
-        "../../build/",
-        "../../build_linux/",
-        "./",
-        "../",
-        "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/build/",
-    ],
-    "libsick_scan_xd_shared_lib.so",
-)
-
+from utils import pySickScanCartesianPointCloudMsgToXYZ
 
 logger = logging.getLogger("uvicorn")
-
 
 app = FastAPI()
 
@@ -129,7 +103,6 @@ async def list_uris() -> JSONResponse:
 #     await client._event_client.request_reply("/start_scan", Empty())
 
 
-
 @app.websocket("/subscribe/{service_name}/{uri_path}")
 async def subscribe(
     websocket: WebSocket, service_name: str, uri_path: str, every_n: int = 1
@@ -156,7 +129,6 @@ async def subscribe(
         await client.request_reply("/start_scan", Empty())
         print("continuing", flush=True)
 
-
     try:
 
         async for _, message in client.subscribe(
@@ -167,16 +139,16 @@ async def subscribe(
 
             if service_name == "lidar" and uri_path == "data":
 
-                    x_values, y_values, z_values = (
-                        pySickScanCartesianPointCloudMsgToXYZ(message, start_time)
-                    )
+                x_values, y_values, z_values = pySickScanCartesianPointCloudMsgToXYZ(
+                    message, start_time
+                )
 
-                    obj = {
-                        "x": [float(x) for x in x_values],
-                        "y": [float(y) for y in y_values],
-                        "z": [float(z) for z in z_values],
-                    }
-                    await websocket.send_json(obj)
+                obj = {
+                    "x": [float(x) for x in x_values],
+                    "y": [float(y) for y in y_values],
+                    "z": [float(z) for z in z_values],
+                }
+                await websocket.send_json(obj)
             else:
                 await websocket.send_json(MessageToJson(message))
 

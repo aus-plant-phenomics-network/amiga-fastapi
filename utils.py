@@ -1,32 +1,15 @@
 import datetime
-import importlib
-import sys
-
-import numpy as np
-import open3d as o3d
-
 import lidar_pb2
 
-sys.path.append(
-    f"/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/sick_scan_xd/python/api"
-)
-
-sick_scan_api = importlib.import_module("sick_scan_api")
+APP_DIRECTORY = "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi"
 
 from sick_scan_api import *
 
 sick_scan_library = SickScanApiLoadLibrary(
-    [
-        "build/",
-        "build_linux/",
-        "../../build/",
-        "../../build_linux/",
-        "./",
-        "../",
-        "/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/sick_scan_ws/build/",
-    ],
+    [os.path.join(APP_DIRECTORY, "sick_scan_ws/build/")],
     "libsick_scan_xd_shared_lib.so",
 )
+api_handle = SickScanApiCreate(sick_scan_library)
 
 
 def to_proto(message_contents):
@@ -220,25 +203,25 @@ def pySickScanCartesianPointCloudMsgToXYZ(pointcloud_msg, start_time=None):
     return points_x, points_y, points_z
 
 
-async def create_ply_file_from_buffer(lidar_buffer, start_time):
-
-    # xyz = np.random.rand(100, 3)
-    pcd = o3d.geometry.PointCloud()
-
-    for i, read in enumerate(lidar_buffer):
-        message = from_proto(read)
-        x_values, y_values, z_values = pySickScanCartesianPointCloudMsgToXYZ(
-            message, start_time
-        )
-        # TODO: Use timestamp instead of scaled index for z values?
-        xyz_points = np.array(
-            [[x, y, i / 100] for x, y, z in zip(x_values, y_values, z_values)]
-        )
-        pcd.points.extend(o3d.utility.Vector3dVector(xyz_points))
-
-    filename = f'/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/lidar_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.ply'
-    o3d.io.write_point_cloud(filename, pcd)
-    print(filename, flush=True)
+# async def create_ply_file_from_buffer(lidar_buffer, start_time):
+#
+#     # xyz = np.random.rand(100, 3)
+#     pcd = o3d.geometry.PointCloud()
+#
+#     for i, read in enumerate(lidar_buffer):
+#         message = from_proto(read)
+#         x_values, y_values, z_values = pySickScanCartesianPointCloudMsgToXYZ(
+#             message, start_time
+#         )
+#         # TODO: Use timestamp instead of scaled index for z values?
+#         xyz_points = np.array(
+#             [[x, y, i / 100] for x, y, z in zip(x_values, y_values, z_values)]
+#         )
+#         pcd.points.extend(o3d.utility.Vector3dVector(xyz_points))
+#
+#     filename = f'/mnt/managed_home/farm-ng-user-gsainsbury/amiga-fastapi/lidar_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.ply'
+#     o3d.io.write_point_cloud(filename, pcd)
+#     print(filename, flush=True)
 
 
 # Convert a SickScanCartesianPointCloudMsg to points
