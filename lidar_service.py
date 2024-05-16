@@ -13,9 +13,10 @@
 # limitations under the License.
 import argparse
 import asyncio
-import datetime
+from datetime import datetime
 import importlib
 import logging
+import os
 import sys
 from collections import deque
 from pathlib import Path
@@ -51,35 +52,43 @@ sick_scan_library = SickScanApiLoadLibrary(
     "libsick_scan_xd_shared_lib.so",
 )
 
+api_handle = SickScanApiCreate(sick_scan_library)
 
-def pySickScanCartesianPointCloudMsgCallback(api_handle, pointcloud_msg):
-    global lidar_buffer, times
-    pointcloud_msg = (
-        pointcloud_msg.contents
-    )  # dereference msg pointer (pointcloud_msg = pointcloud_msg[0])
+DATE_FORMAT = "%Y-%m-%d_%H-%M-%S_%f"
+PUBLISH_RATE = 600
 
-    start_time = datetime.datetime.now()
-    pb_message = to_proto(pointcloud_msg)
-    end_time = datetime.datetime.now()
-    times.append(end_time - start_time)
-    lidar_buffer.append(pb_message)
 
+def pyCustomizedPointCloudMsgCb(api_handle, pointcloud_msg):
+    """
+    Implement a callback to process pointcloud messages
+    Data processing to be done
+    """
+    global lidar_buffer, BASE_DIR
+
+    new_file_path = os.path.join(BASE_DIR, datetime.now().strftime(DATE_FORMAT))
+
+    with open(new_file_path, "ab") as file:
+        protocol_buffer = to_proto(pointcloud_msg.contents)
+        file.write(protocol_buffer.SerializeToString())
+
+    lidar_buffer = protocol_buffer
 
 class LIDARServer:
 
     def __init__(self, event_service: EventServiceGrpc) -> None:
+        global lidar_buffer
         """Initialize the service.
 
         Args:
             event_service: The event service to use for communication.
         """
-        self.cartesian_pointcloud_callback = None
         self._event_service = event_service
         self._event_service.add_request_reply_handler(self.request_reply_handler)
 
         self._counter = 0
+        self._rate: float = 1.0
+        lidar_buffer = None
 
-        self.api_handle = SickScanApiCreate(sick_scan_library)
 
     @property
     def logger(self) -> logging.Logger:
@@ -87,65 +96,56 @@ class LIDARServer:
         return self._event_service.logger
 
     async def request_reply_handler(self, event: Event, message: Message) -> None:
+        global lidar_buffer, BASE_DIR
         """The callback for handling request/reply messages."""
-        if event.uri.path == "/reset_counter":
-            self._counter = 0
+        if event.uri.path == "/start_scan":
+
+            asyncio.create_task(self.perform_lidar_sweep())
 
         return Empty()
 
-    async def run(self) -> None:
-        """Run the main task."""
-        global lidar_buffer, times
-
-        times = []
-        lidar_buffer = deque(maxlen=10)
-
+    async def perform_lidar_sweep(self):
+        global BASE_DIR, lidar_buffer
         SickScanApiInitByLaunchfile(
-            sick_scan_library, self.api_handle, cli_args_for_sick
+            sick_scan_library, api_handle, cli_args_for_sick
         )
-
         # Register for pointcloud messages
-        self.cartesian_pointcloud_callback = SickScanPointCloudMsgCallback(
-            pySickScanCartesianPointCloudMsgCallback
+        cartesian_pointcloud_callback = SickScanPointCloudMsgCallback(
+            pyCustomizedPointCloudMsgCb
         )
         SickScanApiRegisterCartesianPointCloudMsg(
-            sick_scan_library, self.api_handle, self.cartesian_pointcloud_callback
+            sick_scan_library, api_handle, cartesian_pointcloud_callback
         )
+        BASE_DIR = f"/mnt/managed_home/farm-ng-user-gsainsbury/lidar_{datetime.now().strftime(DATE_FORMAT)}"
+        os.makedirs(BASE_DIR, exist_ok=True)
+        await asyncio.sleep(60)
+        lidar_buffer = None
+        SickScanApiDeregisterCartesianPointCloudMsg(
+            sick_scan_library,
+            api_handle,
+            cartesian_pointcloud_callback,
+        )
+        SickScanApiClose(sick_scan_library, api_handle)
+        SickScanApiRelease(sick_scan_library, api_handle)
+        SickScanApiUnloadLibrary(sick_scan_library)
 
-        while True:  # self._counter < 1000:
+    async def run(self) -> None:
+        """Run the main task."""
+        global lidar_buffer
 
-            if len(lidar_buffer) > 0:
-                pointcloud_msg = lidar_buffer.pop()
+        while True:
 
-                await self._event_service.publish("/data", pointcloud_msg)
+            if lidar_buffer is not None:
+                await self._event_service.publish("/data", lidar_buffer)
+                lidar_buffer = None
 
-                self._counter += 1
-            elif self._counter > 0:
-                print("lidar_buffer_empty", flush=True)
-                await finalise_sick(self)
-                exit(-1)
-            else:
-                pass
-            # TODO: Not sure if this is necessary and/or breaking things.
-            await asyncio.sleep(1 / 600)
+            await asyncio.sleep(1.0 / self._rate)
+
 
     async def serve(self) -> None:
         await asyncio.gather(self._event_service.serve(), self.run())
 
 
-async def finalise_sick(event_service):
-    global times
-    print(len(times))
-    print(sum(delta.total_seconds() for delta in times) / len(times), flush=True)
-
-    SickScanApiDeregisterCartesianPointCloudMsg(
-        sick_scan_library,
-        event_service.api_handle,
-        event_service.cartesian_pointcloud_callback,
-    )
-    SickScanApiClose(sick_scan_library, event_service.api_handle)
-    SickScanApiRelease(sick_scan_library, event_service.api_handle)
-    SickScanApiUnloadLibrary(sick_scan_library)
 
 
 async def shutdown(loop, event_service):

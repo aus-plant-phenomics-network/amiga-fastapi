@@ -58,21 +58,21 @@ else:  # Load linux so
     )
 
 
-def pyCustomizedPointCloudMsgCb(api_handle, msg):
+def pyCustomizedPointCloudMsgCb(api_handle, pointcloud_msg):
     """
     Implement a callback to process pointcloud messages
     Data processing to be done
     """
     global message_count
-
-    current_datetime = datetime.now()
-    formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S.%f")
     message_count += 1
 
-    file_name = formatted_datetime
-    new_file_path = os.path.join(new_folder_path, file_name)
+
+
+
+    new_file_path = os.path.join(BASE_DIR, datetime.now().strftime(DATE_FORMAT))
+
     with open(new_file_path, "ab") as file:
-        file.write(to_proto(msg.contents).SerializeToString())
+        file.write(to_proto(pointcloud_msg.contents).SerializeToString())
 
 
 cli_args = " ".join(sys.argv[1:])
@@ -92,15 +92,17 @@ current_directory = os.path.dirname(os.path.abspath(__file__))
 
 lidar_ip_addr = sys.argv[2]  # Get ip addresss
 #new_folder_name = "Lidar_" + lidar_ip_addr[-3:] + "_data"
-new_folder_name = f"Lidar_{lidar_ip_addr[-3:]}_data_{datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}"
+DATE_FORMAT = "%Y-%m-%d_%H-%M-%S_%f"
+BASE_DIR = f"Lidar_{lidar_ip_addr[-3:]}_data_{datetime.now().strftime(DATE_FORMAT)}"
+
 # Create new folder path
-new_folder_path = os.path.join(current_directory, new_folder_name)
+new_folder_path = os.path.join(current_directory, BASE_DIR)
 # Check if the folder already exists, if not, create it
 if not os.path.exists(new_folder_path):
     os.makedirs(new_folder_path)
-    print(f"New Folder '{new_folder_name}' has been created.")
+    print(f"New Folder '{BASE_DIR}' has been created.")
 else:
-    print(f"Folder '{new_folder_name}' already exists in the directory.")
+    print(f"Folder '{BASE_DIR}' already exists in the directory.")
 
 
 # Register for pointcloud messages
@@ -113,7 +115,7 @@ SickScanApiRegisterCartesianPointCloudMsg(
 
 # Run application or main loop
 message_count = 0
-run_time = 90
+run_time = 15
 time.sleep(run_time)
 
 # Close lidar and release sick_scan api

@@ -35,6 +35,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from google.protobuf.json_format import MessageToJson
+from google.protobuf.empty_pb2 import Empty
+
 
 from utils import pySickScanCartesianPointCloudMsgToXYZ, create_ply_file_from_buffer
 
@@ -116,6 +118,18 @@ async def list_uris() -> JSONResponse:
     return JSONResponse(content=all_uris, status_code=200)
 
 
+# @app.post("/start_lidar")
+# async def start_lidar() -> JSONResponse:
+#
+#     service_name = "lidar"
+#
+#     client: EventClient = clients[service_name]
+#
+#
+#     await client._event_client.request_reply("/start_scan", Empty())
+
+
+
 @app.websocket("/subscribe/{service_name}/{uri_path}")
 async def subscribe(
     websocket: WebSocket, service_name: str, uri_path: str, every_n: int = 1
@@ -137,8 +151,11 @@ async def subscribe(
     await websocket.accept()
 
     if service_name == "lidar" and uri_path == "data":
-        lidar_buffer = []
         start_time = datetime.now()
+        print("requesting start_scan reply", flush=True)
+        await client.request_reply("/start_scan", Empty())
+        print("continuing", flush=True)
+
 
     try:
 
@@ -149,9 +166,6 @@ async def subscribe(
             # print(f"Received message.")
 
             if service_name == "lidar" and uri_path == "data":
-                lidar_buffer.append(message)
-
-                if len(lidar_buffer) % 100 == 0:
 
                     x_values, y_values, z_values = (
                         pySickScanCartesianPointCloudMsgToXYZ(message, start_time)
@@ -171,9 +185,6 @@ async def subscribe(
         print("WebSocket disconnected remotely")
 
         print("finished")
-        if service_name == "lidar" and uri_path == "data":
-            logger.info("sending buffer to ply creator")
-            await create_ply_file_from_buffer(lidar_buffer, start_time)
         # print(lidar_buffer)
 
 
